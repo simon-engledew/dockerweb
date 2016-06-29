@@ -10,7 +10,7 @@ npm install
 node index.js
 ```
 
-![image](https://cloud.githubusercontent.com/assets/14410/16444220/f24117b0-3dd4-11e6-9288-f3f3b7a842a8.png)
+![jun-29-2016 08-43-42](https://cloud.githubusercontent.com/assets/14410/16444393/ae5a07ae-3dd5-11e6-87ae-f29f2716689e.gif)
 
 visit http://localhost:3000/docker
 
