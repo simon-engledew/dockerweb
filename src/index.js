@@ -6,19 +6,11 @@ import http from 'http';
 import server from 'socket.io';
 import path from 'path';
 import SocketStream from './socketstream';
+import dockerfile from './dockerfile';
 
 const TAG = 'echo:latest';
 
 const docker = new Docker({socketPath: '/var/run/docker.sock'});
-
-var tar = require('tar-stream');
-var pack = tar.pack();
-pack.entry({ name: 'Dockerfile' }, `
-FROM gliderlabs/alpine:3.3
-
-CMD /bin/bash
-`);
-pack.finalize();
 
 async function init() {
   const app = express();
@@ -31,7 +23,7 @@ async function init() {
 
   console.log(`building ${ TAG }`);
 
-  await docker.denodeify.buildImage(pack, {t: TAG});
+  await docker.denodeify.buildImage(dockerfile, {t: TAG});
 
   var containers = await docker.denodeify.listContainers({all: true});
 
