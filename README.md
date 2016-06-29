@@ -1,6 +1,6 @@
 ## About
 
-This is a proof-of-concept for attaching a web-based terminal to a running Docker container.
+This is a proof-of-concept for attaching a web-based terminal to a live Docker container.
 
 ![jun-29-2016 08-43-42](https://cloud.githubusercontent.com/assets/14410/16444393/ae5a07ae-3dd5-11e6-87ae-f29f2716689e.gif)
 
