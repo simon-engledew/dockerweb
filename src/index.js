@@ -45,7 +45,7 @@ async function init() {
     }
   }));
 
-  server(http.createServer(app).listen(3000), {path: '/wetty/socket.io'}).on('connection', function (socket) {
+  server(http.createServer(app).listen(process.env.PORT || 3000), {path: '/wetty/socket.io'}).on('connection', function (socket) {
     const write = (data) => socket.emit('output', data)
 
     async function connected() {
