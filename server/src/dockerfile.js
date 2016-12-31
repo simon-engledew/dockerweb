@@ -5,7 +5,7 @@ var pack = tar.pack();
 pack.entry({ name: 'Dockerfile' }, `
 FROM gliderlabs/alpine:3.3
 
-CMD /bin/bash
+CMD ["/bin/sh"]
 `);
 
 pack.finalize();

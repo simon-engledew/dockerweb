@@ -1,16 +1,21 @@
 import Docker from 'dockerode';
-import './denodeify-proxy';
+import './lib/denodeify-proxy';
 import pty from 'pty.js';
 import express from 'express';
 import http from 'http';
 import server from 'socket.io';
 import path from 'path';
-import SocketStream from './socketstream';
+import SocketStream from './lib/socketstream';
 import dockerfile from './dockerfile';
+import colors from 'ansi-256-colors';
 
-const TAG = 'echo:latest';
+const TAG = 'dockerweb:latest';
 
 const docker = new Docker({socketPath: '/var/run/docker.sock'});
+
+function formatId(value) {
+  return value.slice(0, 12);
+}
 
 async function init() {
   const app = express();
@@ -23,15 +28,31 @@ async function init() {
 
   console.log(`[INFO] Building ${ TAG }`);
 
-  await docker.denodeify.buildImage(dockerfile, {t: TAG});
+  const stream = await docker.denodeify.buildImage(dockerfile, {t: TAG});
 
-  var containers = await docker.denodeify.listContainers({all: true});
+  await new Promise((resolve, reject) => {
+    stream.on('data', function (data) {
+      data.toString().trim().split('\n').forEach(function (line) {
+        const json = JSON.parse(line);
+        if (json.stream) {
+          console.log(`[INFO] ${ json.stream.trim() }`);
+        }
+        if (json.errorDetail) {
+          reject(json.errorDetail.message);
+        }
+      })
+    });
+    stream.on('error', reject);
+    stream.on('end', resolve);
+  });
+
+  const containers = await docker.denodeify.listContainers({all: true});
 
   console.log('[INFO] Checking for existing containers');
 
   await Promise.all(containers.map(async function (containerInfo) {
     if (containerInfo.Image == TAG) {
-      console.log(`[WARN] Deleting existing container ${ containerInfo.Id }`);
+      console.log(`[WARN] Deleting existing container ${ formatId(containerInfo.Id) }`);
 
       await docker.getContainer(containerInfo.Id).denodeify.remove({force: true});
     }
@@ -41,16 +62,19 @@ async function init() {
 
   server(http.createServer(app).listen(process.env.PORT || 3000), {path: '/wetty/socket.io'}).on('connection', function (socket) {
     const write = (data) => socket.emit('output', data)
+    const echo = (data) => write(`${ data }\r\n`);
 
     async function connected() {
-      write('Creating new container\r\n');
+      echo(`Creating container`);
 
-      var container = await docker.denodeify.createContainer({Image: TAG, AttachStdin: true, OpenStdin: true, Tty: true, Cmd: ['/bin/sh']});
+      const container = await docker.denodeify.createContainer({Image: TAG, AttachStdin: true, OpenStdin: true, Tty: true});
+
+      console.log(`[INFO] Created container ${ formatId(container.id) }`);
 
       try {
-        write(`Attaching to container ${ container.id }\r\n`);
+        write(`Attached to ${ colors.fg.getRgb(5, 2, 6) }${ formatId(container.id) }${ colors.reset }\r\n`);
 
-        var stream = await container.denodeify.attach({stream: true, stdin: true, stdout: true, stderr: true});
+        const stream = await container.denodeify.attach({stream: true, stdin: true, stdout: true, stderr: true});
 
         await container.denodeify.start();
 
@@ -61,7 +85,7 @@ async function init() {
         socket.on('input', (data) => stream.write(data));
 
         function stop() {
-          return container.denodeify.stop().then(() => console.log(`container ${container.id} stopped`)).catch(console.error);
+          return container.denodeify.stop().then(() => console.log(`[INFO] container ${ formatId(container.id) } stopped`)).catch(console.error);
         }
 
         socket.on('disconnect', stop);
@@ -73,7 +97,7 @@ async function init() {
         write('[Process completed]\r\n');
       }
       finally {
-        console.log(`[INFO] Container ${container.id} removed`);
+        console.log(`[INFO] Container ${ formatId(container.id) } removed`);
 
         await container.denodeify.remove({force: true});
       }
@@ -83,10 +107,8 @@ async function init() {
       console.error(err);
     });
   });
-
 }
 
-
 init().catch(function (err) {
-  console.error(err);
+  console.error(`[FATAL] ${ err }`);
 });
