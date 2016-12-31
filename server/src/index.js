@@ -21,32 +21,34 @@ async function init() {
 
   app.use('/', express.static(path.join(__dirname, '..', 'public')));
 
-  console.log(`building ${ TAG }`);
+  console.log(`[INFO] Building ${ TAG }`);
 
   await docker.denodeify.buildImage(dockerfile, {t: TAG});
 
   var containers = await docker.denodeify.listContainers({all: true});
 
-  console.log('checking for existing containers');
+  console.log('[INFO] Checking for existing containers');
 
   await Promise.all(containers.map(async function (containerInfo) {
     if (containerInfo.Image == TAG) {
-      console.log(`deleting existing container ${ containerInfo.Id }`);
+      console.log(`[WARN] Deleting existing container ${ containerInfo.Id }`);
 
       await docker.getContainer(containerInfo.Id).denodeify.remove({force: true});
     }
   }));
 
+  console.log('[INFO] Starting server');
+
   server(http.createServer(app).listen(process.env.PORT || 3000), {path: '/wetty/socket.io'}).on('connection', function (socket) {
     const write = (data) => socket.emit('output', data)
 
     async function connected() {
-      write('creating new container\r\n');
+      write('Creating new container\r\n');
 
       var container = await docker.denodeify.createContainer({Image: TAG, AttachStdin: true, OpenStdin: true, Tty: true, Cmd: ['/bin/sh']});
 
       try {
-        write(`attaching to container ${ container.id }\r\n`);
+        write(`Attaching to container ${ container.id }\r\n`);
 
         var stream = await container.denodeify.attach({stream: true, stdin: true, stdout: true, stderr: true});
 
@@ -71,7 +73,7 @@ async function init() {
         write('[Process completed]\r\n');
       }
       finally {
-        console.log(`container ${container.id} removed`);
+        console.log(`[INFO] Container ${container.id} removed`);
 
         await container.denodeify.remove({force: true});
       }

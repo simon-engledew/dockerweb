@@ -8,11 +8,12 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
-    "node" : ">=6.2.0"
+    "node": ">=6.2.0"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "babel-core": "^6.21.0",
     "babel-plugin-syntax-async-functions": "^6.8.0",
     "babel-plugin-transform-class-properties": "^6.10.2",
     "babel-plugin-transform-object-rest-spread": "^6.8.0",
@@ -22,7 +23,7 @@
     "denodeify": "^1.2.1",
     "dockerode": "^2.2.10",
     "express": "^4.14.0",
-    "pty.js": "git+https://github.com/chjj/pty.js.git#f125ff086a75456555e399e68cefc0742d5b56ca",
+    "pty.js": "^0.3.1",
     "socket.io": "^1.4.8",
     "tar-stream": "^1.5.2"
   }
